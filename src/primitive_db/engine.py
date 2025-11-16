@@ -3,8 +3,7 @@ import shlex
 import prompt
 
 from .core import create_table, drop_table, list_tables
-from .utils import load_metadata, save_metadata
-
+from .utils import load_metadata, save_metadata, METADATA_FILE
 
 def run():
     """
@@ -16,8 +15,7 @@ def run():
     print("Введите 'exit' для выхода из программы.")
 
     while True:
-
-        METADATA_FILE = "db_meta.json"
+        
         try:
             metadata = load_metadata(METADATA_FILE)
 

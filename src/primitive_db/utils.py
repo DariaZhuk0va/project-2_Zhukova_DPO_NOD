@@ -1,5 +1,14 @@
 import json
+import os
 
+# Константы
+METADATA_FILE = 'db_meta.json'
+DATA_DIR = 'data'
+
+def ensure_data_dir():
+    """Создает директорию data если она не существует"""
+
+    os.makedirs(DATA_DIR, exist_ok=True)
 
 def load_metadata(filepath):
     """
@@ -37,3 +46,48 @@ def save_metadata(filepath, data):
         print(f"Ошибка: Нет прав на запись в файл '{filepath}'")
     except Exception as e:
         print(f"Ошибка при сохранении метаданных: {e}")
+
+def load_table_data(table_name):
+    """
+    Загружает данные таблицы из файла
+    """
+    
+    ensure_data_dir()
+    
+    filepath = os.path.join(DATA_DIR, f"{table_name}.json")
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            content = file.read().strip()
+            if not content:
+                return []
+            return json.loads(content)
+    
+    except FileNotFoundError:
+        return []
+    
+    except json.JSONDecodeError:
+        print(f"Ошибка: Файл {filepath} содержит некорректный JSON")
+        return []
+    
+    except Exception as e:
+        print(f"Ошибка при загрузке данных таблицы {table_name}: {e}")
+        return []
+
+def save_table_data(table_name, data):
+    """
+    Сохраняет данные таблицы в файл
+    """
+    
+    ensure_data_dir()
+    
+    filepath = os.path.join(DATA_DIR, f"{table_name}.json")
+    
+    try:
+        with open(filepath, 'w', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
+        return True
+    
+    except Exception as e:
+        print(f"Ошибка при сохранении данных таблицы {table_name}: {e}")
+        return False
