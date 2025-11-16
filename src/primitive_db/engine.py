@@ -11,7 +11,7 @@ def run():
     Главная функция с основным циклом программы.
     """
 
-    print("Добро пожаловать в модуль 'База данных'!")
+    print("Добро пожаловать в модуль 'База данных'!\n")
     print("Введите 'help' для просмотра доступных команд.")
     print("Введите 'exit' для выхода из программы.")
 
@@ -21,7 +21,7 @@ def run():
         try:
             metadata = load_metadata(METADATA_FILE)
 
-            user_input = prompt.string(">>>Введите команду: ").strip()
+            user_input = prompt.string("\n>>>Введите команду: ").strip()
 
             if user_input.lower() in ["exit", "quit", "выход"]:
                 print("До свидания!")
