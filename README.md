@@ -57,6 +57,10 @@ poetry run ruff check .
 
   Пример:
   drop_table users
+  
+  ● Просмотр таблиц
+  Команда: list_tables
+  Отображает список всех существующих таблиц.
 
 ● Справка
   Команда: help
@@ -69,6 +73,7 @@ poetry run ruff check .
 Пример сессии работы:
 
 Добро пожаловать в модуль 'База данных'!
+
 Введите 'help' для просмотра доступных команд.
 Введите 'exit' для выхода из программы.
 
@@ -77,6 +82,11 @@ poetry run ruff check .
 
 >>>Введите команду: create_table products title:str price:int in_stock:bool  
 Таблица 'products' успешно создана
+
+>>>Введите команду: list_tables
+Таблицы в базе данных:
+1. users
+2. products
 
 >>>Введите команду: drop_table products
 Таблица 'products' успешно удалена

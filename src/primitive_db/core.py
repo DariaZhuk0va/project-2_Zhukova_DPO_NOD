@@ -61,3 +61,19 @@ def drop_table(metadata, table_name):
     del metadata[table_name]
     print(f"Таблица '{table_name}' успешно удалена")
     return metadata
+
+def list_tables(metadata):
+    """
+    Показывает список всех таблиц в базе данных.
+    
+    Args:
+        metadata (dict): Метаданные базы данных
+    """
+    if not metadata:
+        print("В базе данных нет таблиц.")
+        return
+    
+    print("Таблицы в базе данных:")
+    for i, table_name in enumerate(metadata.keys(), 1):
+        print(f"{i}. {table_name}")
+        
