@@ -2,7 +2,7 @@ import shlex
 
 import prompt
 
-from .core import create_table, drop_table
+from .core import create_table, drop_table, list_tables
 from .utils import load_metadata, save_metadata
 
 
@@ -11,7 +11,7 @@ def run():
     Главная функция с основным циклом программы.
     """
 
-    print("Добро пожаловать в модуль 'База данных'!")
+    print("Добро пожаловать в модуль 'База данных'!\n")
     print("Введите 'help' для просмотра доступных команд.")
     print("Введите 'exit' для выхода из программы.")
 
@@ -21,7 +21,7 @@ def run():
         try:
             metadata = load_metadata(METADATA_FILE)
 
-            user_input = prompt.string(">>>Введите команду: ").strip()
+            user_input = prompt.string("\n>>>Введите команду: ").strip()
 
             if user_input.lower() in ["exit", "quit", "выход"]:
                 print("До свидания!")
@@ -78,6 +78,9 @@ def run():
 
                     if new_metadata != metadata:
                         save_metadata(METADATA_FILE, new_metadata)
+
+                case "list_tables":
+                    list_tables(metadata)
 
                 case _:
                     print(f"Функции '{command}' нет. Попробуйте снова.")
