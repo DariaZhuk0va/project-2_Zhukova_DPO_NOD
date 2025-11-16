@@ -95,4 +95,6 @@ poetry run ruff check .
 До свидания!
 
 ДЕМОНСТРАЦИЯ РАБОТЫ
-[![asciicast](https://asciinema.org/a/example-id.svg)](https://asciinema.org/a/example-id)
+
+Установка, запуск базы данных, создание, удаление и просмотр таблиц:
+https://asciinema.org/a/W4U5wi4eB3eefAindn7JuGhqK
