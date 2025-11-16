@@ -26,12 +26,10 @@ def save_metadata(filepath, data):
     Сохраняет переданные данные в JSON-файл
 
     """
-    print(f"DEBUG: save_metadata вызван с filepath='{filepath}'")
-    print(f"DEBUG: Данные для сохранения: {data}")
+    
     try:
         with open(filepath, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=2)
-            print(f"Метаданные успешно сохранены в '{filepath}'")
     except FileNotFoundError:
         print(f"Ошибка: Директория для файла '{filepath}' не существует")
         print("Создайте директорию вручную или укажите корректный путь")

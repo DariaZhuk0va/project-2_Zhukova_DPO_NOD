@@ -75,9 +75,8 @@ def run():
 
                     table_name = args[1]
                     new_metadata = drop_table(metadata, table_name)
-
-                    if new_metadata != metadata:
-                        save_metadata(METADATA_FILE, new_metadata)
+                    
+                    save_metadata(METADATA_FILE, new_metadata)
 
                 case "list_tables":
                     list_tables(metadata)
