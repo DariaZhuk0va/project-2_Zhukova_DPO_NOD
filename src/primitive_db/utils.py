@@ -91,3 +91,14 @@ def save_table_data(table_name, data):
     except Exception as e:
         print(f"Ошибка при сохранении данных таблицы {table_name}: {e}")
         return False
+
+def get_next_id(table_name):
+    """
+    Генерирует следующий ID для таблицы
+    """
+    
+    table_data = load_table_data(table_name)
+    if table_data:
+        return max(record['ID'] for record in table_data) + 1
+    else:
+        return 1
