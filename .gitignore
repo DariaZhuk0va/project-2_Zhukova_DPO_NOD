@@ -44,4 +44,8 @@ data/
 # Игнорировать файл метаданных
 db_meta.json
 
+# macOS system files
+.DS_Store
+*.DS_Store
+**/.DS_Store
 	
