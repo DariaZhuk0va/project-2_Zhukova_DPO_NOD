@@ -35,4 +35,13 @@ __pycache__/
 
 # Ruff stuff:
 .ruff_cache/
+
+# Игнорировать папку data со всеми файлами
+data/
+*/data/
+**/data/
+
+# Игнорировать файл метаданных
+db_meta.json
+
 	

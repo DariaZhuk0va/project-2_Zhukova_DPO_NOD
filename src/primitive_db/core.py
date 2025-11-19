@@ -120,7 +120,12 @@ def create_insert_function(get_next_id):
                             print(f"Ошибка: Некорректное булево значение '{value}' для столбца '{col_name}'")
                             return None
                     case 'str':  
-                        new_record[col_name] = str(value)
+                        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+                            new_record[col_name] = value[1:-1]
+                        else:
+                            print(f"Ошибка: Для строкового столбца '{col_name}' значение должно быть в кавычках")
+                            print(f"Получено: {value}, ожидается: '\"значение\"'")
+                            return None
                     case _:
                         print(f"Ошибка: Неверный тип данных для столбца '{col_name}'")
                         return None
