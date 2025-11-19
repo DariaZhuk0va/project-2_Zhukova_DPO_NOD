@@ -1,7 +1,0 @@
-{
-  "user": {
-    "ID": "int",
-    "name": "str",
-    "age": "int"
-  }
-}
