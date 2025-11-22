@@ -64,7 +64,7 @@ def confirm_action(action_name):
                     if func.__name__ == 'drop_table':
                         return args[0]  
                     elif func.__name__ == 'delete':
-                        return args[0], 0  
+                        return args[0], -1  
                     return None
                 case 'y':
                     return func(*args, **kwargs)

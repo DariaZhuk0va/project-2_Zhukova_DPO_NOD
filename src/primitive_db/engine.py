@@ -422,6 +422,9 @@ def handle_delete(metadata, args):
     
     remaining_data, deleted_count = delete(table_data, where_clause)
 
+    if deleted_count == -1:  
+        return  
+
     if deleted_count > 0:
         if save_table_data(table_name, remaining_data):
             print(f"Удалено записей: {deleted_count}")
