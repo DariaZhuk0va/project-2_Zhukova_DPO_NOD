@@ -2,7 +2,9 @@ import copy
 
 from prettytable import PrettyTable
 
+from .decorators import handle_db_errors
 
+@handle_db_errors
 def create_table(metadata, table_name, columns):
     """
     Создает новую таблицу в метаданных.
@@ -43,7 +45,7 @@ def create_table(metadata, table_name, columns):
     print(f"Таблица '{table_name}' успешно создана")
     return new_metadata
 
-
+@handle_db_errors
 def drop_table(metadata, table_name):
     """
     Удаляет таблицу из метаданных.
@@ -64,6 +66,7 @@ def drop_table(metadata, table_name):
     print(f"Таблица '{table_name}' успешно удалена")
     return metadata
 
+@handle_db_errors
 def list_tables(metadata):
     """
     Показывает список всех таблиц в базе данных.
@@ -78,12 +81,13 @@ def list_tables(metadata):
     print("Таблицы в базе данных:")
     for i, table_name in enumerate(metadata.keys(), 1):
         print(f"{i}. {table_name}")
-        
+
+@handle_db_errors        
 def create_insert_function(get_next_id):
     """
     Создает функцию insert с доступом к генератору ID
     """
-    
+    @handle_db_errors
     def insert(metadata: dict, table_name: str, values: list):
 
         """
@@ -131,6 +135,7 @@ def create_insert_function(get_next_id):
     
     return insert
 
+@handle_db_errors
 def select(table_data, where_clause =  None):
     """
     Выбирает записи из таблицы с возможностью фильтрации
@@ -154,6 +159,7 @@ def select(table_data, where_clause =  None):
     
     return filtered_data
 
+@handle_db_errors
 def update(table_data, set_clause, where_clause = None):
     """
     Обновляет записи в таблице
@@ -179,6 +185,7 @@ def update(table_data, set_clause, where_clause = None):
 
     return updated_data, updated_count
 
+@handle_db_errors
 def delete(table_data, where_clause = None):
     """
     Удаляет записи из таблицы
@@ -204,6 +211,7 @@ def delete(table_data, where_clause = None):
     
     return remaining_data, deleted_count
 
+@handle_db_errors
 def display_table(data, columns):
     """
     Отображает данные в виде красивой таблицы

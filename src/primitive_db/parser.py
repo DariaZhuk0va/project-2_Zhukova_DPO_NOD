@@ -1,4 +1,6 @@
+from .decorators import handle_db_errors
 
+@handle_db_errors
 def parse_conditions(condition_str):
     """
     Парсит условия в формате 'key1 = value1, key2 = value2'
@@ -6,30 +8,26 @@ def parse_conditions(condition_str):
     if not condition_str:
         return None
     
-    try:
-        conditions = {}
-        conditions_list = split_by_commas(condition_str)
+    conditions = {}
+    conditions_list = split_by_commas(condition_str)
         
-        for condition in conditions_list:
-            condition = condition.strip()
-            if '=' in condition:
-                parts = condition.split('=', 1)
-                if len(parts) == 2:
-                    key = parts[0].strip()
-                    raw_value = parts[1].strip()
-                    conditions[key] = raw_value
-                else:
-                    print(f"Ошибка: Некорректное условие '{condition}'")
-                    return None
+    for condition in conditions_list:
+        condition = condition.strip()
+        if '=' in condition:
+            parts = condition.split('=', 1)
+            if len(parts) == 2:
+                key = parts[0].strip()
+                raw_value = parts[1].strip()
+                conditions[key] = raw_value
             else:
-                print(f"Ошибка: Отсутствует знак '=' в условии '{condition}'")
+                print(f"Ошибка: Некорректное условие '{condition}'")
                 return None
+        else:
+            print(f"Ошибка: Отсутствует знак '=' в условии '{condition}'")
+            return None
        
-        return conditions
-    except Exception as e:
-        print(f"Ошибка при разборе условий: {e}")
-        return None
-
+    return conditions
+    
 def split_by_commas(text):
     """
     Делит строку по запятым, игнорируя запятые внутри кавычек

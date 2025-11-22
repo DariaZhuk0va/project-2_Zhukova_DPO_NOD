@@ -130,8 +130,6 @@ def run():
         except EOFError:
             print("\nДо свидания!")
             break
-        except Exception as e:
-            print(f"Произошла непредвиденная ошибка: {e}")
 
 
 if __name__ == "__main__":
@@ -224,7 +222,6 @@ def handle_insert(metadata, args):
         print("Использование: values (<значение1>, <значение2>, ...)")
         return
 
-    # Убираем внешние скобки
     values_str = values_str[1:-1]
 
     try:
@@ -247,7 +244,6 @@ def handle_insert(metadata, args):
     insert = create_insert_function(get_next_id)
     new_record = insert(metadata, table_name, values)
 
-    
     table_schema = metadata[table_name]
     expected_columns = [col for col in table_schema.keys() if col != "ID"]
 
@@ -262,7 +258,9 @@ def handle_insert(metadata, args):
 
     if new_record:
         table_data = load_table_data(table_name)
-
+        if table_data is None:
+            table_data = []
+            
         table_data.append(new_record)
 
         if save_table_data(table_name, table_data):
