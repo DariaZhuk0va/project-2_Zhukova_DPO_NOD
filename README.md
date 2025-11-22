@@ -208,3 +208,7 @@ select from users where name = "John Doe"
 
 Установка, запуск базы данных, создание, удаление и просмотр таблиц:
 https://asciinema.org/a/W4U5wi4eB3eefAindn7JuGhqK
+
+Работа команд CRUD:
+https://asciinema.org/a/FXFfnZ9P5uTGQ1en1RDeMIpzu
+
