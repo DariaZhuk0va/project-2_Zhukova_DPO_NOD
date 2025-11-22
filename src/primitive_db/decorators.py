@@ -1,5 +1,6 @@
 import json
 import prompt
+import time
 
 def handle_db_errors(func):
     """
@@ -73,3 +74,16 @@ def confirm_action(action_name):
                     return wrapper(*args, **kwargs)
         return wrapper
     return decorator
+
+def log_time(func):
+    """
+    Декоратор для замера времени выполнения функции.
+    """
+    def wrapper(*args, **kwargs):
+        start_time = time.monotonic()
+        result = func(*args, **kwargs)
+        end_time = time.monotonic()
+        execution_time = end_time - start_time
+        print(f"Функция {func.__name__} выполнилась за {execution_time:.3f} секунд")
+        return result
+    return wrapper

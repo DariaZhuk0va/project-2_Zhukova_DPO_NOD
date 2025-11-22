@@ -2,7 +2,7 @@ import copy
 
 from prettytable import PrettyTable
 
-from .decorators import handle_db_errors, confirm_action
+from .decorators import handle_db_errors, confirm_action, log_time
 
 @handle_db_errors
 def create_table(metadata, table_name, columns):
@@ -83,12 +83,13 @@ def list_tables(metadata):
     for i, table_name in enumerate(metadata.keys(), 1):
         print(f"{i}. {table_name}")
 
-@handle_db_errors        
+@handle_db_errors       
 def create_insert_function(get_next_id):
     """
     Создает функцию insert с доступом к генератору ID
     """
     @handle_db_errors
+    @log_time 
     def insert(metadata: dict, table_name: str, values: list):
 
         """
@@ -137,6 +138,7 @@ def create_insert_function(get_next_id):
     return insert
 
 @handle_db_errors
+@log_time
 def select(table_data, where_clause =  None):
     """
     Выбирает записи из таблицы с возможностью фильтрации
