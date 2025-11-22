@@ -1,3 +1,6 @@
+import json
+import prompt
+
 def handle_db_errors(func):
     """
     Декоратор для обработки ошибок базы данных.
@@ -39,3 +42,34 @@ def handle_db_errors(func):
             print(f"Произошла непредвиденная ошибка в функции {func.__name__}: {e}")
             return None
     return wrapper
+
+def confirm_action(action_name):
+    """
+    Декоратор для запроса подтверждения опасных операций.
+    
+    Args:
+        action_name (str): Название действия для отображения в запросе подтверждения
+    """
+    
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            response = prompt.string(
+                                    f'Вы уверены, что хотите выполнить '
+                                    '"{action_name}"? [y/n]: '
+                                    ).strip().lower()
+            
+            match response:
+                case 'n':
+                    print("Операция отменена.")
+                    if func.__name__ == 'drop_table':
+                        return args[0]  
+                    elif func.__name__ == 'delete':
+                        return args[0], 0  
+                    return None
+                case 'y':
+                    return func(*args, **kwargs)
+                case _:
+                    print('Команда не распознана. Используйте y/n')
+                    return wrapper(*args, **kwargs)
+        return wrapper
+    return decorator

@@ -2,7 +2,7 @@ import copy
 
 from prettytable import PrettyTable
 
-from .decorators import handle_db_errors
+from .decorators import handle_db_errors, confirm_action
 
 @handle_db_errors
 def create_table(metadata, table_name, columns):
@@ -46,6 +46,7 @@ def create_table(metadata, table_name, columns):
     return new_metadata
 
 @handle_db_errors
+@confirm_action("удаление таблицы")
 def drop_table(metadata, table_name):
     """
     Удаляет таблицу из метаданных.
@@ -186,6 +187,7 @@ def update(table_data, set_clause, where_clause = None):
     return updated_data, updated_count
 
 @handle_db_errors
+@confirm_action("удаление записей")
 def delete(table_data, where_clause = None):
     """
     Удаляет записи из таблицы
