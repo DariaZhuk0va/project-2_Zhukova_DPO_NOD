@@ -88,18 +88,10 @@ def create_insert_function(get_next_id):
         """
         Добавляет новую запись в таблицу
         """
-
-        if table_name not in metadata:
-            print(f"Ошибка: Таблица '{table_name}' не существует")
-            return None
         
         table_schema = metadata[table_name]
         expected_columns = [col for col in table_schema.keys() if col != 'ID']
-        
-        if len(values) != len(expected_columns):
-            print(f"Ошибка: Ожидается {len(expected_columns)} значений, получено {len(values)}")
-            return None
-        
+            
         next_id = get_next_id(table_name)
         
         new_record = {'ID': next_id}
@@ -120,12 +112,7 @@ def create_insert_function(get_next_id):
                             print(f"Ошибка: Некорректное булево значение '{value}' для столбца '{col_name}'")
                             return None
                     case 'str':  
-                        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
-                            new_record[col_name] = value[1:-1]
-                        else:
-                            print(f"Ошибка: Для строкового столбца '{col_name}' значение должно быть в кавычках")
-                            print(f"Получено: {value}, ожидается: '\"значение\"'")
-                            return None
+                            new_record[col_name] = value
                     case _:
                         print(f"Ошибка: Неверный тип данных для столбца '{col_name}'")
                         return None
@@ -152,7 +139,7 @@ def select(table_data, where_clause =  None):
     for record in table_data:
         equally = True
         for key, value in where_clause.items():
-            if key not in record or record[key] != value:
+            if key.lower() not in record or record[key.lower()] != value:
                 equally = False
                 break
         if equally:
@@ -167,32 +154,25 @@ def update(table_data, set_clause, where_clause = None):
     
     updated_data = table_data.copy()
     updated_count = 0
+
     
     for i, record in enumerate(updated_data):
         equally = True
         if where_clause:
             for key, value in where_clause.items():
-                if key not in record or record[key] != value:
+                if key.lower() not in record or record[key.lower()] != value:
                     equally = False
                     break
         
         if equally:
             for key, value in set_clause.items():
-                if key in record and key != 'ID':  # ID нельзя изменять
-                    if isinstance(record[key], bool):
-                        if value.lower() in ['true', '1', 'yes']:
-                            updated_data[i][key] = True
-                        else:
-                            updated_data[i][key] = False
-                    elif isinstance(record[key], int):
-                        updated_data[i][key] = int(value)
-                    else:
-                        updated_data[i][key] = str(value)
+                if key.lower() in record and key != 'ID':
+                    updated_data[i][key] = value
             updated_count += 1
-    
+
     return updated_data, updated_count
 
-def delete(table_data, where_clause=None):
+def delete(table_data, where_clause = None):
     """
     Удаляет записи из таблицы
     """
@@ -206,7 +186,7 @@ def delete(table_data, where_clause=None):
     for record in table_data:
         equally = True
         for key, value in where_clause.items():
-            if key not in record or record[key] != value:
+            if key.lower() not in record or record[key.lower()] != value:
                 equally = False
                 break
         
