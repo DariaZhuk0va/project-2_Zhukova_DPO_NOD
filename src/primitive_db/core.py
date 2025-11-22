@@ -2,6 +2,7 @@ import copy
 
 from prettytable import PrettyTable
 
+
 def create_table(metadata, table_name, columns):
     """
     Создает новую таблицу в метаданных.
@@ -109,7 +110,10 @@ def create_insert_function(get_next_id):
                         elif value.lower() in ['false', '0', 'no']:
                             new_record[col_name] = False
                         else:
-                            print(f"Ошибка: Некорректное булево значение '{value}' для столбца '{col_name}'")
+                            print(
+                                f"Ошибка: Некорректное булево значение "
+                                f"'{value}' для столбца '{col_name}'"
+                                )
                             return None
                     case 'str':  
                             new_record[col_name] = value
@@ -117,7 +121,10 @@ def create_insert_function(get_next_id):
                         print(f"Ошибка: Неверный тип данных для столбца '{col_name}'")
                         return None
             except ValueError:
-                print(f"Ошибка: Некорректное значение '{value}' для столбца '{col_name}' типа {col_type}")
+                print(
+                    f"Ошибка: Некорректное значение '{value}' "
+                    f"для столбца '{col_name}' типа {col_type}"
+                    )
                 return None
         
         return new_record

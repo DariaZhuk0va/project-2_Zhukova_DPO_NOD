@@ -1,36 +1,36 @@
+import os
 import shlex
 
 import prompt
 
-import os
-
 from .core import (
-    create_table,
-    drop_table,
-    list_tables,
     create_insert_function,
-    select,
-    update,
+    create_table,
     delete,
     display_table,
-)
-from .utils import (
-    load_metadata,
-    save_metadata,
-    METADATA_FILE,
-    DATA_DIR,
-    load_table_data,
-    save_table_data,
-    get_next_id,
-    normalize_table_schema
+    drop_table,
+    list_tables,
+    select,
+    update,
 )
 from .parser import (
-    parse_conditions,
     convert_where_clause,
+    parse_conditions,
     split_by_commas,
+    validate_set_conditions,
     validate_where_conditions,
-    validate_set_conditions
 )
+from .utils import (
+    DATA_DIR,
+    METADATA_FILE,
+    get_next_id,
+    load_metadata,
+    load_table_data,
+    normalize_table_schema,
+    save_metadata,
+    save_table_data,
+)
+
 
 def run():
     """
@@ -150,17 +150,21 @@ def print_help():
     print("\n***Операции с данными***")
     print("Функции:")
     print(
-        "<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись"
+        "<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...)"
+        " - создать запись"
     )
     print(
-        "<command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию"
+        "<command> select from <имя_таблицы> where <столбец> = <значение> "
+        "- прочитать записи по условию"
     )
     print("<command> select from <имя_таблицы> - прочитать все записи")
     print(
-        "<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись."
+        "<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where "
+        "<столбец_условия> = <значение_условия> - обновить запись."
     )
     print(
-        "<command> delete from <имя_таблицы> where <столбец> = <значение> - удалить запись"
+        "<command> delete from <имя_таблицы> where <столбец> = <значение> "
+        "- удалить запись"
     )
     print("<command> info <имя_таблицы> - вывести информацию о таблице")
 
@@ -177,14 +181,16 @@ def handle_insert(metadata, args):
     if len(args) < 5:
         print("Ошибка: Недостаточно аргументов для insert")
         print(
-            "Использование: insert into <имя_таблицы> values (<значение1>, <значение2>, ...)"
+            "Использование: insert into <имя_таблицы> values "
+            "(<значение1>, <значение2>, ...)"
         )
         return
 
     if args[1].lower() != "into":
         print("Ошибка: Ожидается ключевое слово 'into'")
         print(
-            "Использование: insert into <имя_таблицы> values (<значение1>, <значение2>, ...)"
+            "Использование: insert into <имя_таблицы> values "
+            "(<значение1>, <значение2>, ...)"
         )
         return
     
@@ -230,9 +236,10 @@ def handle_insert(metadata, args):
         return
 
     if len(values) != len(expected_columns):
-        print(f"Ошибка: Неверное количество значений")
+        print("Ошибка: Неверное количество значений")
         print(
-            f"Ожидается: {len(expected_columns)} (столбцы: {', '.join(expected_columns)})"
+            f"Ожидается: {len(expected_columns)} (столбцы: "
+            f"{', '.join(expected_columns)})"
         )
         print(f"Получено: {len(values)}")
         return
@@ -245,9 +252,10 @@ def handle_insert(metadata, args):
     expected_columns = [col for col in table_schema.keys() if col != "ID"]
 
     if len(values) != len(expected_columns):
-        print(f"Ошибка: Неверное количество значений")
+        print("Ошибка: Неверное количество значений")
         print(
-            f"Ожидается: {len(expected_columns)} (столбцы: {', '.join(expected_columns)})"
+            f"Ожидается: {len(expected_columns)} (столбцы: "
+            f"{', '.join(expected_columns)})"
         )
         print(f"Получено: {len(values)}")
         return
@@ -265,7 +273,8 @@ def handle_insert(metadata, args):
 
 def handle_select(metadata, args):
     """
-    Обрабатывает команду select в формате: select from <table> where <столбец> = <значение>
+    Обрабатывает команду select в формате:
+    select from <table> where <столбец> = <значение>
     """
     
     if len(args) < 3:
@@ -277,7 +286,7 @@ def handle_select(metadata, args):
         print("Ошибка: Ожидается ключевое слово 'from'")
         return
 
-    if not validate_where_conditions(args, 4):  # начинаем с индекса 4 (после 'where')
+    if not validate_where_conditions(args, 4): 
             return
     
     table_name = args[2].lower()
@@ -295,7 +304,7 @@ def handle_select(metadata, args):
             print(f"Таблица '{table_name}' пуста")
             return
         
-        result_data = select(table_data, None)  # None означает "все записи"
+        result_data = select(table_data, None)  
         columns = list(table_schema)
         display_table(result_data, columns)
         return
@@ -366,8 +375,8 @@ def handle_delete(metadata, args):
         print("Ошибка: Ожидается ключевое слово 'from'")
         return
 
-    if not validate_where_conditions(args, 4):  # начинаем с индекса 4 (после 'where')
-        return
+    if not validate_where_conditions(args, 4): 
+        return 
     
     table_name = args[2].lower()
 
@@ -399,7 +408,10 @@ def handle_delete(metadata, args):
 
     for col_name in where_clause.keys():
         if col_name.lower() not in table_schema_norm:
-            print(f"Ошибка: Столбец '{col_name}' не существует в таблице '{table_name}'")
+            print(
+                f"Ошибка: Столбец '{col_name}' "
+                f"не существует в таблице '{table_name}'"
+                )
             print(f"Доступные столбцы: {', '.join(table_schema.keys())}")
             return
 
@@ -467,12 +479,18 @@ def handle_update(metadata, args):
 
     if set_str.strip() == "" or set_clause is None or len(set_clause) == 0:
         print("Ошибка: Отсутствуют условия для обновления после SET")
-        print("Использование: update <таблица> set <столбец>=<значение> where <столбец_условия> = <значение_условия>")
+        print(
+            "Использование: update <таблица> set <столбец>=<значение> "
+            "where <столбец_условия> = <значение_условия>"
+            )
         return
 
     if where_str.strip() == "":
         print("Ошибка: Отсутствуют условия после WHERE")
-        print("Использование: update <таблица> set <столбец>=<значение> where <условия>")
+        print(
+            "Использование: update <таблица> set "
+            "<столбец>=<значение> where <условия>"
+            )
         return
 
     if set_clause is None or where_clause is None:
@@ -485,13 +503,19 @@ def handle_update(metadata, args):
 
     for col_name in set_clause.keys():
         if col_name.lower() not in table_schema_norm and col_name not in ('ID', 'id'):
-            print(f"Ошибка: Столбец '{col_name}' не существует в таблице '{table_name}'")
+            print(
+                f"Ошибка: Столбец '{col_name}' не существует в таблице "
+                f"'{table_name}'"
+                )
             print(f"Доступные столбцы: {', '.join(table_schema.keys())}")
             return
     
     for col_name in where_clause.keys():
         if col_name.lower() not in table_schema_norm:
-            print(f"Ошибка: Столбец '{col_name}' не существует в таблице '{table_name}'")
+            print(
+                f"Ошибка: Столбец '{col_name}' не существует в таблице "
+                f"'{table_name}'"
+                )
             print(f"Доступные столбцы: {', '.join(table_schema.keys())}")
             return
 

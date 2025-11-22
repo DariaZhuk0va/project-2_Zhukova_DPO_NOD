@@ -1,4 +1,3 @@
-import shlex
 
 def parse_conditions(condition_str):
     """
@@ -177,22 +176,19 @@ def validate_set_conditions(args, start_index):
     """
     i = start_index
     while i < len(args):
-        # Ищем паттерн: столбец = значение
         if i + 2 < len(args) and args[i + 1] == '=':
             column = args[i]
             value_start = i + 2
-            
-            # Ищем конец значения (до следующего оператора =, WHERE или конца)
+        
             j = value_start
             while j < len(args):
-                # Если нашли следующий оператор = или WHERE, значит текущее значение закончилось
+                
                 if j + 1 < len(args) and args[j + 1] == '=':
                     break
                 if args[j].lower() == 'where':
                     break
                 j += 1
             
-            # Если значение состоит из нескольких слов (без кавычек) - ошибка
             if j > value_start + 1:
                 original_value = ' '.join(args[value_start:j])
                 print("Ошибка: Обнаружены пробелы в значении условия SET")
@@ -200,7 +196,6 @@ def validate_set_conditions(args, start_index):
                 print(f"Используйте: {column} = \"{original_value}\"")
                 return False
             
-            # Переходим к следующему условию
             i = j
         else:
             i += 1
