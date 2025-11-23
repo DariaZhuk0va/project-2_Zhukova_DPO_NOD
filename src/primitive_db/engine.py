@@ -12,6 +12,7 @@ from .core import (
     list_tables,
     select,
     update,
+    create_select_with_cache
 )
 from .parser import (
     convert_where_clause,
@@ -29,6 +30,7 @@ from .utils import (
     normalize_table_schema,
     save_metadata,
     save_table_data,
+    invalidate_table_cache
 )
 
 
@@ -264,6 +266,7 @@ def handle_insert(metadata, args):
         table_data.append(new_record)
 
         if save_table_data(table_name, table_data):
+            invalidate_table_cache(table_name)
             print(f"Запись успешно добавлена с ID: {new_record['ID']}")
         else:
             print("Ошибка при сохранении данных")
@@ -295,6 +298,7 @@ def handle_select(metadata, args):
 
     table_schema = metadata[table_name]
     table_schema_norm = normalize_table_schema(table_schema)
+    where_clause = None
 
     if len(args) == 3:
         table_data = load_table_data(table_name)
@@ -302,7 +306,7 @@ def handle_select(metadata, args):
             print(f"Таблица '{table_name}' пуста")
             return
         
-        result_data = select(table_data, None)  
+        result_data = create_select_with_cache(table_name, where_clause)  
         columns = list(table_schema)
         display_table(result_data, columns)
         return
@@ -344,7 +348,7 @@ def handle_select(metadata, args):
         print(f"Таблица '{table_name}' пуста")
         return
     
-    result_data = select(table_data, where_clause)
+    result_data = create_select_with_cache(table_name, where_clause)    
 
     if not result_data:
         print("Записи не найдены")
@@ -428,6 +432,7 @@ def handle_delete(metadata, args):
     if deleted_count > 0:
         if save_table_data(table_name, remaining_data):
             print(f"Удалено записей: {deleted_count}")
+            invalidate_table_cache(table_name)
         else:
             print("Ошибка при сохранении данных")
     else:
@@ -544,6 +549,7 @@ def handle_update(metadata, args):
     if updated_count > 0:
         if save_table_data(table_name, updated_data):
             print(f"Обновлено записей: {updated_count}")
+            invalidate_table_cache(table_name)
         else:
             print("Ошибка при сохранении данных")
     else:
@@ -599,3 +605,4 @@ def handle_drop_table(metadata, table_name):
     # Удаляем из метаданных
     new_metadata = drop_table(metadata, table_name)
     return new_metadata
+    

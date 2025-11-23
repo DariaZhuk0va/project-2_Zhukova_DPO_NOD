@@ -104,3 +104,62 @@ def normalize_table_schema(table_schema):
     for col_name, col_type in table_schema.items():
         normalized_schema[col_name.lower()] = col_type
     return normalized_schema
+
+def create_cacher():
+    """
+    Создает замыкание для кэширования результатов.
+    
+    Returns:
+        Функция cache_result(key, value_func) для кэширования
+    """
+    
+    cache = {}  # Кэш хранится в замыкании
+    
+    def cache_result(key, value_func):
+        """
+        Кэширует результат выполнения функции.
+        
+        Args:
+            key: Ключ для кэша (должен быть хэшируемым)
+            value_func: Функция для получения данных, если их нет в кэше
+            
+        Returns:
+            Результат выполнения value_func или значение из кэша
+        """
+
+        if key in cache:
+            return cache[key]
+        else:
+            result = value_func()
+            cache[key] = result
+            return result
+    
+    def invalidate_table_cache(table_name):
+        """
+        Удаляет из кэша все записи, связанные с указанной таблицей
+        """
+        keys_to_remove = []
+        for key in cache.keys():
+            if key.startswith(f"select_{table_name}_") or key == f"select_all_{table_name}":
+                keys_to_remove.append(key)
+        
+        for key in keys_to_remove:
+            del cache[key]
+            #print(f"Удален кэш для ключа: {key}")
+        
+        #if keys_to_remove:
+            #print(f"Очищен кэш для таблицы '{table_name}' ({len(keys_to_remove)} записей)")
+    
+    def get_cache_stats():
+        """
+        Возвращает статистику кэша
+        """
+        return {
+            'total_entries': len(cache),
+            'keys': list(cache.keys())
+        }
+    
+    return cache_result, invalidate_table_cache, get_cache_stats
+
+# Глобальные кэшеры
+select_cacher, invalidate_table_cache, get_cache_stats = create_cacher()

@@ -1,8 +1,10 @@
 import copy
-
+import json
 from prettytable import PrettyTable
 
 from .decorators import handle_db_errors, confirm_action, log_time
+from .utils import select_cacher, load_table_data
+
 
 @handle_db_errors
 def create_table(metadata, table_name, columns):
@@ -82,8 +84,7 @@ def list_tables(metadata):
     print("Таблицы в базе данных:")
     for i, table_name in enumerate(metadata.keys(), 1):
         print(f"{i}. {table_name}")
-
-@handle_db_errors       
+     
 def create_insert_function(get_next_id):
     """
     Создает функцию insert с доступом к генератору ID
@@ -233,3 +234,34 @@ def display_table(data, columns):
         table.add_row(row)
     
     print(table)
+
+def create_select_with_cache(table_name, where_clause):
+    """
+    Создает функцию для выполнения SELECT с кэшированием.
+    
+    Args:
+        table_name: Имя таблицы
+        where_clause: Условия WHERE
+        
+    Returns:
+        Результат SELECT запроса (из кэша или вычисленный)
+    """
+    
+    cache_key = f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
+    
+    def execute_select():
+        """Функция для получения данных при промахе кэша"""
+        
+        if where_clause is None:
+            cache_key = f"select_all_{table_name}"
+        else:
+            cache_key = f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
+    
+        def execute_select():
+            """Функция для получения данных при промахе кэша"""
+            
+            table_data = load_table_data(table_name)
+            return select(table_data, where_clause)
+    
+        return select_cacher(cache_key, execute_select)
+    return select_cacher(cache_key, execute_select)
