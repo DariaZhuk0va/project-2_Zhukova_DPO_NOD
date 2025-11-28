@@ -23,13 +23,13 @@ from .parser import (
 )
 from .utils import (
     get_next_id,
+    initialize_database,
     invalidate_table_cache,
     load_metadata,
     load_table_data,
     normalize_table_schema,
     save_metadata,
     save_table_data,
-    initialize_database
 )
 
 
@@ -392,11 +392,6 @@ def handle_delete(metadata, args):
     if not validate_where_conditions(args, WHERE_INDEX + 1): 
         return 
     
-    #if len(args) == 4:
-        #print("Ошибка: Отсутствуют условия после WHERE")
-        #print("Использование: delete from <таблица> where <условия>")
-        #return
-
     where_str = " ".join(args[WHERE_INDEX + 1:])
     where_clause = parse_conditions(where_str)
     if where_clause is None:

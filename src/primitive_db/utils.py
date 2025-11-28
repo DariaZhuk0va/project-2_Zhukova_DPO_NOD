@@ -4,6 +4,7 @@ import os
 from .constants import DATA_DIR, METADATA_FILE
 from .decorators import handle_db_errors
 
+
 @handle_db_errors
 def ensure_data_dir():
     """
@@ -22,7 +23,6 @@ def initialize_database():
     """
     ensure_data_dir()
     
-    # Проверяем и создаем файл метаданных если его нет
     if not os.path.exists(METADATA_FILE):
         with open(METADATA_FILE, 'w', encoding='utf-8') as file:
             json.dump({}, file, ensure_ascii=False, indent=2)

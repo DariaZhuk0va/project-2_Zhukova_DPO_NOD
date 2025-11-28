@@ -30,8 +30,8 @@ def create_table(metadata, table_name, columns):
         col_type = col_type.lower().strip()
         
         if col_name.upper() == "ID":
-            print(f"Ошибка: Столбец 'ID' создается автоматически и "
-                  f"не может быть указан вручную")
+            print("Ошибка: Столбец 'ID' создается автоматически и "
+                  "не может быть указан вручную")
             return metadata
         
         if col_type not in ["int", "str", "bool"]:
@@ -256,10 +256,7 @@ def create_select_with_cache(table_name, where_clause):
     """
     
     cache_key = f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
-    
-    #def execute_select():
-        #"""Функция для получения данных при промахе кэша"""
-        
+  
     if where_clause is None:
         cache_key = f"select_all_{table_name}"
     else:
@@ -271,5 +268,4 @@ def create_select_with_cache(table_name, where_clause):
         table_data = load_table_data(table_name)
         return select(table_data, where_clause)
     
-    #    return select_cacher(cache_key, execute_select)
     return select_cacher(cache_key, execute_select)
