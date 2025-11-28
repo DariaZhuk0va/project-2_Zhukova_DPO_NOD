@@ -14,6 +14,7 @@ from .core import (
     list_tables,
     update,
 )
+from .decorators import handle_db_errors
 from .parser import (
     convert_where_clause,
     parse_conditions,
@@ -31,9 +32,7 @@ from .utils import (
     save_metadata,
     save_table_data,
 )
-from .decorators import (
-    handle_db_errors
-)
+
 
 def run():
     """

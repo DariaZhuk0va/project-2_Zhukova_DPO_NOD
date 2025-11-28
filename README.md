@@ -141,6 +141,42 @@ select from users where name = "John Doe"
 - yes, no
 - on, off
 
+ДЕКОРАТОРЫ ДЛЯ ОБРАБОТКИ ОШИБОК И ЛОГИРОВАНИЯ
+
+Система использует декораторы для централизованной обработки различных аспектов работы:
+
+- @handle_db_errors - перехватывает и обрабатывает все ошибки базы данных:
+  • FileNotFoundError - файлы данных не найдены
+  • PermissionError - недостаточно прав для доступа к файлам  
+  • KeyError - обращение к несуществующим таблицам/столбцам
+  • ValueError - ошибки валидации типов данных
+  • JSONDecodeError - ошибки парсинга JSON
+  • Exception - все остальные непредвиденные ошибки
+
+- @confirm_action - запрашивает подтверждение для опасных операций:
+  • Удаление таблиц (drop_table)
+  • Удаление записей (delete)
+  • Поддерживает ответы y/n с возможностью отмены операции
+
+- @log_time - замеряет время выполнения функций:
+  • Выводит время выполнения в секундах
+  • Помогает в профилировании и оптимизации запросов
+
+СИСТЕМА КЭШИРОВАНИЯ ЗАПРОСОВ
+
+Реализовано интеллектуальное кэширование результатов SELECT-запросов:
+
+- Автоматическое кэширование результатов запросов
+- Ключи кэша формируются на основе таблицы и условий WHERE
+- При изменении данных (INSERT, UPDATE, DELETE) кэш автоматически инвалидируется
+- Повторные одинаковые запросы выполняются мгновенно из кэша
+
+Пример работы кэширования:
+>>> select from users where age = 25  # Выполняется и кэшируется
+>>> select from users where age = 25  # Возвращается из кэша
+>>> insert into users values ("New User", 30, true, new@email.com)  # Кэш инвалидируется
+>>> select from users where age = 25  # Выполняется заново и кэшируется
+
 ПРИМЕР СЕССИИ РАБОТЫ
 
 Добро пожаловать в модуль 'База данных'!
@@ -151,7 +187,7 @@ select from users where name = "John Doe"
 >>>>Введите команду: create_table users name:str email:str age:int
 Таблица 'users' успешно создана
 
->>>Введите команду: create_table products title:str price:int in_stock:bool  
+>>>Введите команду: create_table products title:str price:int category:str in_stock:bool  
 Таблица 'products' успешно создана
 
 >>>Введите команду: list_tables
@@ -160,46 +196,61 @@ select from users where name = "John Doe"
 2. products
 
 >>>Введите команду: insert into products values ("Laptop", 1000, "Electronics", true)
+Файл метаданных 'data/products.json' создан
+Функция insert выполнилась за 0.001 секунд
 Запись успешно добавлена с ID: 1
 
 >>>Введите команду: insert into products values ("Mouse", 25, "Electronics", 0)
+Функция insert выполнилась за 0.001 секунд
 Запись успешно добавлена с ID: 2
 
 
 >>>Введите команду: select from products
-+----+--------------+-------+-------------+----------+
-| ID |     name     | price |   category  | in_stock |
-+----+--------------+-------+-------------+----------+
-| 1  |    Laptop    |  1000 | Electronics |   True   |
-| 2  |    Mouse     |   25  | Electronics |   False   |
+Функция select выполнилась за 0.000 секунд
++----+--------+-------+-------------+----------+
+| ID | title  | price |   category  | in_stock |
++----+--------+-------+-------------+----------+
+| 1  | Laptop |  1000 | Electronics |   True   |
+| 2  | Mouse  |   25  | Electronics |  False   |
++----+--------+-------+-------------+----------+
 
->>>Введите команду: select from products where name = "Mouse"
-+----+--------------+-------+-------------+----------+
-| ID |     name     | price |   category  | in_stock |
-+----+--------------+-------+-------------+----------+
-| 2  |    Mouse     |   25  | Electronics |   True   |
+>>>Введите команду: select from products where title = "Mouse"
+Функция select выполнилась за 0.000 секунд
++----+-------+-------+-------------+----------+
+| ID | title | price |   category  | in_stock |
++----+-------+-------+-------------+----------+
+| 2  | Mouse |   25  | Electronics |  False   |
++----+-------+-------+-------------+----------+
 
->>>Введите команду: update products set price = 30 where name = "Mouse"
+>>>Введите команду: update products set price = 30 where title = "Mouse"
 Обновлено записей: 1
 
 >>>Введите команду: select from products
-+----+--------------+-------+-------------+----------+
-| ID |     name     | price |   category  | in_stock |
-+----+--------------+-------+-------------+----------+
-| 1  |    Laptop    |  1000 | Electronics |   True   |
-| 2  |    Mouse     |   30  | Electronics |   False   |
+Функция select выполнилась за 0.000 секунд
++----+--------+-------+-------------+----------+
+| ID | title  | price |   category  | in_stock |
++----+--------+-------+-------------+----------+
+| 1  | Laptop |  1000 | Electronics |   True   |
+| 2  | Mouse  |   30  | Electronics |  False   |
++----+--------+-------+-------------+----------+
+
 
 >>>Введите команду: delete from products where in_stock = false
+Вы уверены, что хотите выполнить "удаление записей"? [y/n]: y
 Удалено записей: 1
 
->>>Введите команду: select from products
-+----+--------------+-------+-------------+----------+
-| ID |     name     | price |   category  | in_stock |
-+----+--------------+-------+-------------+----------+
-| 1  |    Laptop    |  1000 | Electronics |   True   |
+>>>Введите команду: Функция select выполнилась за 0.000 секунд
++----+--------+-------+-------------+----------+
+| ID | title  | price |   category  | in_stock |
++----+--------+-------+-------------+----------+
+| 1  | Laptop |  1000 | Electronics |   True   |
++----+--------+-------+-------------+----------+
 
 >>>Введите команду: drop_table products
+Вы уверены, что хотите выполнить "удаление таблицы"? [y/n]: y
 Таблица 'products' успешно удалена
+Файл данных 'products.json' удален
+
 
 >>>Введите команду: exit
 До свидания!
@@ -211,4 +262,7 @@ https://asciinema.org/a/W4U5wi4eB3eefAindn7JuGhqK
 
 Работа команд CRUD:
 https://asciinema.org/a/FXFfnZ9P5uTGQ1en1RDeMIpzu
+
+Работа декораторов и кэша:
+https://asciinema.org/a/VOsY2hJ5WzVG25p8B9JOZafeu
 
