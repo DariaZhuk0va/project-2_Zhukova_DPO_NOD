@@ -1,0 +1,5 @@
+
+METADATA_FILE = 'db_meta.json'
+DATA_DIR = 'data'
+COMMAND_POSITION = 0
+REFUSE = 'CANCELLED'

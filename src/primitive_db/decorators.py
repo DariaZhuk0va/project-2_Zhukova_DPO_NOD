@@ -1,6 +1,10 @@
 import json
-import prompt
 import time
+
+import prompt
+
+from .constants import REFUSE
+
 
 def handle_db_errors(func):
     """
@@ -55,7 +59,7 @@ def confirm_action(action_name):
     def decorator(func):
         def wrapper(*args, **kwargs):
             response = prompt.string(
-                                    f'Вы уверены, что хотите выполнить '
+                                    'Вы уверены, что хотите выполнить '
                                     '"{action_name}"? [y/n]: '
                                     ).strip().lower()
             
@@ -63,9 +67,9 @@ def confirm_action(action_name):
                 case 'n':
                     print("Операция отменена.")
                     if func.__name__ == 'drop_table':
-                        return args[0]  
+                        return REFUSE  
                     elif func.__name__ == 'delete':
-                        return args[0], -1  
+                        return args[0], REFUSE  
                     return None
                 case 'y':
                     return func(*args, **kwargs)

@@ -3,16 +3,16 @@ import shlex
 
 import prompt
 
+from .constants import COMMAND_POSITION, DATA_DIR, METADATA_FILE, REFUSE
 from .core import (
     create_insert_function,
+    create_select_with_cache,
     create_table,
     delete,
     display_table,
     drop_table,
     list_tables,
-    select,
     update,
-    create_select_with_cache
 )
 from .parser import (
     convert_where_clause,
@@ -22,15 +22,14 @@ from .parser import (
     validate_where_conditions,
 )
 from .utils import (
-    DATA_DIR,
-    METADATA_FILE,
     get_next_id,
+    invalidate_table_cache,
     load_metadata,
     load_table_data,
     normalize_table_schema,
     save_metadata,
     save_table_data,
-    invalidate_table_cache
+    initialize_database
 )
 
 
@@ -43,6 +42,8 @@ def run():
     print("Введите 'help' для просмотра доступных команд.")
     print("Введите 'exit' для выхода из программы.")
 
+    initialize_database()
+    
     while True:
 
         try:
@@ -57,8 +58,16 @@ def run():
             if not user_input:
                 continue
 
-            args = shlex.split(user_input)
-            command = args[0].lower()
+            try:
+                args = shlex.split(user_input)
+            except ValueError as e:
+                if "No closing quotation" in str(e):
+                    print("Ошибка: Незакрытая кавычка в команде")
+                else:
+                    print(f"Ошибка синтаксиса: {e}")
+                continue
+            
+            command = args[COMMAND_POSITION].lower()
 
             match command:
 
@@ -66,43 +75,10 @@ def run():
                     print_help()
 
                 case "create_table":
-                    if len(args) < 3:
-                        print("Ошибка: Недостаточно аргументов для create_table")
-                        print(
-                            "Использование: create_table <имя_таблицы> "
-                            "<столбец1:тип> <столбец2:тип> ..."
-                        )
-                        continue
-
-                    table_name = args[1]
-                    columns_list = args[2:]
-                    columns_dict = {}
-
-                    for item in columns_list:
-
-                        if ":" not in item:
-                            print(f"Ошибка: Неверный формат '{item}'.")
-                            print("Используйте 'столбец:тип'")
-                            break
-                        col_name, col_type = item.split(":", 1)
-                        col_type = col_type.lower().strip()
-
-                        columns_dict[col_name] = col_type
-
-                    new_metadata = create_table(metadata, table_name, columns_dict)
-
-                    if new_metadata != metadata:
-                        save_metadata(METADATA_FILE, new_metadata)
+                    handle_create_table(metadata, args)
 
                 case "drop_table":
-                    if len(args) < 2:
-                        print("Ошибка: Недостаточно аргументов для drop_table")
-                        print("Использование: drop_table <имя_таблицы>")
-                        continue
-
-                    table_name = args[1]
-                    new_metadata = handle_drop_table(metadata, table_name)
-                    save_metadata(METADATA_FILE, new_metadata)
+                    handle_drop_table(metadata, args)
 
                 case "list_tables":
                     list_tables(metadata)
@@ -138,47 +114,80 @@ if __name__ == "__main__":
     run()
 
 
-def print_help():
-    """Prints the help message for the current mode."""
+def handle_create_table(metadata, args):
+    """
+    Обрабатывает команду create_table
+    в формате: create_table <имя_таблицы> <столбец1:тип> .. 
+    """
 
-    print("\n***Процесс работы с таблицей***")
-    print("Функции:")
-    print("<command> create_table <имя_таблицы> <столбец1:тип> .. - создать таблицу")
-    print("<command> list_tables - показать список всех таблиц")
-    print("<command> drop_table <имя_таблицы> - удалить таблицу")
+    MIN_ARGS = 3
+    if len(args) < MIN_ARGS:
+        print("Ошибка: Недостаточно аргументов для create_table")
+        print(
+            "Использование: create_table <имя_таблицы> "
+            "<столбец1:тип> <столбец2:тип> ..."
+            )
 
-    print("\n***Операции с данными***")
-    print("Функции:")
-    print(
-        "<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...)"
-        " - создать запись"
-    )
-    print(
-        "<command> select from <имя_таблицы> where <столбец> = <значение> "
-        "- прочитать записи по условию"
-    )
-    print("<command> select from <имя_таблицы> - прочитать все записи")
-    print(
-        "<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where "
-        "<столбец_условия> = <значение_условия> - обновить запись."
-    )
-    print(
-        "<command> delete from <имя_таблицы> where <столбец> = <значение> "
-        "- удалить запись"
-    )
-    print("<command> info <имя_таблицы> - вывести информацию о таблице")
+    TABLE_NAME_INDEX = 1
+    table_name = args[TABLE_NAME_INDEX]
+    columns_list = args[TABLE_NAME_INDEX + 1:]
+    columns_dict = {}
 
-    print("\nОбщие команды:")
-    print("<command> exit - выход из программы")
-    print("<command> help - справочная информация\n")
+    for item in columns_list:
 
+        if ":" not in item:
+            print(f"Ошибка: Неверный формат '{item}'.")
+            print("Используйте 'столбец:тип'")
+            break
 
+        MAXSPLIT = 1               
+        col_name, col_type = item.split(":", MAXSPLIT)
+        col_type = col_type.lower().strip()
+
+        columns_dict[col_name] = col_type
+
+    new_metadata = create_table(metadata, table_name, columns_dict)
+
+    if new_metadata != metadata:
+        save_metadata(METADATA_FILE, new_metadata)
+
+def handle_drop_table(metadata, args):
+    """
+    Обрабатывает удаление таблицы - удаляет и метаданные и данные
+    """
+    
+    MIN_ARGS = 2
+    if len(args) < MIN_ARGS:
+        print("Ошибка: Недостаточно аргументов для drop_table")
+        print("Использование: drop_table <имя_таблицы>")
+
+    TABLE_NAME_INDEX = 1
+    table_name = args[TABLE_NAME_INDEX]
+    
+    if table_name not in metadata:
+        print(f"Ошибка: Таблица '{table_name}' не существует")
+        return 
+    
+    new_metadata = drop_table(metadata, table_name)
+    if new_metadata == REFUSE:
+        return 
+    else:
+        filepath = os.path.join(DATA_DIR, f"{table_name}.json")
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                print(f"Файл данных '{table_name}.json' удален")
+                save_metadata(METADATA_FILE, new_metadata)
+        except Exception as e:
+            print(f"Ошибка при удалении файла данных: {e}")
+        return
+    
 def handle_insert(metadata, args):
     """
     Обрабатывает команду insert в формате: insert into <table> values (val1, val2, ...)
     """
-
-    if len(args) < 5:
+    MIN_ARGS = 5
+    if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для insert")
         print(
             "Использование: insert into <имя_таблицы> values "
@@ -186,7 +195,8 @@ def handle_insert(metadata, args):
         )
         return
 
-    if args[1].lower() != "into":
+    INTO_INDEX = 1
+    if args[INTO_INDEX].lower() != "into":
         print("Ошибка: Ожидается ключевое слово 'into'")
         print(
             "Использование: insert into <имя_таблицы> values "
@@ -194,19 +204,21 @@ def handle_insert(metadata, args):
         )
         return
     
-    table_name = args[2].lower()
+    TABLE_NAME_INDEX = 2
+    table_name = args[TABLE_NAME_INDEX].lower()
     if table_name not in metadata:
         print(f"Ошибка: Таблица '{table_name}' не существует")
         return
 
-    if args[3].lower() != "values":
+    VALUES_INDEX = 3
+    if args[VALUES_INDEX].lower() != "values":
         print("Ошибка: Ожидается ключевое слово 'values'")
         return
 
     table_schema = metadata[table_name]
     expected_columns = [col for col in table_schema.keys() if col != "ID"]
 
-    values_str = " ".join(args[4:])
+    values_str = " ".join(args[(VALUES_INDEX + 1):])
 
     has_opening_bracket = values_str.startswith('(')
     has_closing_bracket = values_str.endswith(')')
@@ -246,18 +258,6 @@ def handle_insert(metadata, args):
     insert = create_insert_function(get_next_id)
     new_record = insert(metadata, table_name, values)
 
-    table_schema = metadata[table_name]
-    expected_columns = [col for col in table_schema.keys() if col != "ID"]
-
-    if len(values) != len(expected_columns):
-        print("Ошибка: Неверное количество значений")
-        print(
-            f"Ожидается: {len(expected_columns)} (столбцы: "
-            f"{', '.join(expected_columns)})"
-        )
-        print(f"Получено: {len(values)}")
-        return
-
     if new_record:
         table_data = load_table_data(table_name)
         if table_data is None:
@@ -271,36 +271,34 @@ def handle_insert(metadata, args):
         else:
             print("Ошибка при сохранении данных")
 
-
 def handle_select(metadata, args):
     """
     Обрабатывает команду select в формате:
     select from <table> where <столбец> = <значение>
     """
-    
-    if len(args) < 3:
+    MIN_ARGS = 3
+    if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для select")
         print("Использование: select from <имя_таблицы> where <столбец> = <значение>")
         return
 
-    if args[1].lower() != "from":
+    FROM_INDEX = 1
+    if args[FROM_INDEX].lower() != "from":
         print("Ошибка: Ожидается ключевое слово 'from'")
         return
 
-    if not validate_where_conditions(args, 4): 
-            return
-    
-    table_name = args[2].lower()
-    
+    TABLE_NAME_INDEX = 2
+    table_name = args[TABLE_NAME_INDEX].lower()
     if table_name not in metadata:
         print(f"Ошибка: Таблица '{table_name}' не существует")
         return
-
+    
     table_schema = metadata[table_name]
     table_schema_norm = normalize_table_schema(table_schema)
     where_clause = None
-
-    if len(args) == 3:
+    
+    ARGS_COUNT_WO_WHERE = 3
+    if len(args) == ARGS_COUNT_WO_WHERE:
         table_data = load_table_data(table_name)
         if not table_data:
             print(f"Таблица '{table_name}' пуста")
@@ -310,18 +308,20 @@ def handle_select(metadata, args):
         columns = list(table_schema)
         display_table(result_data, columns)
         return
-
     
-    if args[3].lower() != "where":
+    WHERE_INDEX = 3
+    if args[WHERE_INDEX].lower() != "where":
         print("Ошибка: Ожидается ключевое слово 'where'")
         return
+    if not validate_where_conditions(args, WHERE_INDEX + 1): 
+            return
     
-    if len(args) == 4:
+    if len(args) == WHERE_INDEX + 1:
         print("Ошибка: Отсутствуют условия после 'where'")
         print("Использование: select from <таблица> where <столбец> = <значение>")
         return
 
-    where_str = " ".join(args[4:])
+    where_str = " ".join(args[WHERE_INDEX + 1:])
     where_clause = parse_conditions(where_str)
 
     if where_clause is None:
@@ -362,40 +362,42 @@ def handle_select(metadata, args):
     display_table(result_data, columns)
 
 
-
 def handle_delete(metadata, args):
     """
     Обрабатывает команду delete в формате: delete from <table> where <условия>
     """
 
-    if len(args) < 4:
+    MIN_ARGS = 5
+    if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для delete")
         print("Использование: delete from <имя_таблицы> where <условия>")
         return
 
-    if args[1].lower() != "from":
+    FROM_INDEX = 1
+    if args[FROM_INDEX].lower() != "from":
         print("Ошибка: Ожидается ключевое слово 'from'")
         return
 
-    if not validate_where_conditions(args, 4): 
-        return 
-    
-    table_name = args[2].lower()
-
+    TABLE_NAME_INDEX = 2
+    table_name = args[TABLE_NAME_INDEX].lower()
     if table_name not in metadata:
         print(f"Ошибка: Таблица '{table_name}' не существует")
         return
 
-    if args[3].lower() != "where":
+    WHERE_INDEX = 3
+    if args[WHERE_INDEX].lower() != "where":
         print("Ошибка: Ожидается ключевое слово 'where'")
         return
+    
+    if not validate_where_conditions(args, WHERE_INDEX + 1): 
+        return 
+    
+    #if len(args) == 4:
+        #print("Ошибка: Отсутствуют условия после WHERE")
+        #print("Использование: delete from <таблица> where <условия>")
+        #return
 
-    if len(args) == 4:
-        print("Ошибка: Отсутствуют условия после WHERE")
-        print("Использование: delete from <таблица> where <условия>")
-        return
-
-    where_str = " ".join(args[4:])
+    where_str = " ".join(args[WHERE_INDEX + 1:])
     where_clause = parse_conditions(where_str)
     if where_clause is None:
         return
@@ -426,7 +428,7 @@ def handle_delete(metadata, args):
     
     remaining_data, deleted_count = delete(table_data, where_clause)
 
-    if deleted_count == -1:  
+    if deleted_count == REFUSE:  
         return  
 
     if deleted_count > 0:
@@ -444,19 +446,20 @@ def handle_update(metadata, args):
     Обрабатывает команду update в формате: update <table> set <условия> where <условия>
     """
 
-    if len(args) < 6:
+    MIN_ARGS = 6
+    if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для update")
         print("Использование: update <имя_таблицы> set <условия> where <условия>")
         return
 
-    table_name = args[1].lower()
-    
-    
+    TABLE_NAME_INDEX = 1
+    table_name = args[TABLE_NAME_INDEX].lower()
     if table_name not in metadata:
         print(f"Ошибка: Таблица '{table_name}' не существует")
         return
 
-    if args[2].lower() != "set":
+    SET_INDEX = 2
+    if args[SET_INDEX].lower() != "set":
         print("Ошибка: Ожидается ключевое слово 'set'")
         return
 
@@ -470,13 +473,13 @@ def handle_update(metadata, args):
         print("Ошибка: Ожидается ключевое слово 'where'")
         return
 
-    if not validate_set_conditions(args, 3):  # начинаем с индекса 3 (после 'set')
+    if not validate_set_conditions(args, SET_INDEX + 1):
         return
     
-    if not validate_where_conditions(args, where_index + 1):  # начинаем после 'where'
+    if not validate_where_conditions(args, where_index + 1):
         return
 
-    set_str = " ".join(args[3:where_index])
+    set_str = " ".join(args[SET_INDEX + 1:where_index])
     where_str = " ".join(args[where_index + 1 :])
 
     set_clause = parse_conditions(set_str)
@@ -560,13 +563,14 @@ def handle_info(metadata, args):
     """
     Обрабатывает команду info - выводит информацию о таблице
     """
-
-    if len(args) < 2:
+    MIN_ARGS = 2
+    if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для info")
         print("Использование: info <имя_таблицы>")
         return
 
-    table_name = args[1].lower()
+    TABLE_NAME_INDEX = 1
+    table_name = args[TABLE_NAME_INDEX].lower()
 
     if table_name not in metadata:
         print(f"Ошибка: Таблица '{table_name}' не существует")
@@ -584,25 +588,40 @@ def handle_info(metadata, args):
 
     print(f"Количество записей: {len(table_data)}")
 
-def handle_drop_table(metadata, table_name):
-    """
-    Обрабатывает удаление таблицы - удаляет и метаданные и данные
-    """
+def print_help():
+    """Prints the help message for the current mode."""
+
+    print("\n***Процесс работы с таблицей***")
+    print("Функции:")
+    print("<command> create_table <имя_таблицы> <столбец1:тип> .. - создать таблицу")
+    print("<command> list_tables - показать список всех таблиц")
+    print("<command> drop_table <имя_таблицы> - удалить таблицу")
+
+    print("\n***Операции с данными***")
+    print("Функции:")
+    print(
+        "<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...)"
+        " - создать запись"
+    )
+    print(
+        "<command> select from <имя_таблицы> where <столбец> = <значение> "
+        "- прочитать записи по условию"
+    )
+    print("<command> select from <имя_таблицы> - прочитать все записи")
+    print(
+        "<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where "
+        "<столбец_условия> = <значение_условия> - обновить запись."
+    )
+    print(
+        "<command> delete from <имя_таблицы> where <столбец> = <значение> "
+        "- удалить запись"
+    )
+    print("<command> info <имя_таблицы> - вывести информацию о таблице")
+
+    print("\nОбщие команды:")
+    print("<command> exit - выход из программы")
+    print("<command> help - справочная информация\n")
+
+
     
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return metadata
-
-    # Удаляем файл с данными
-    filepath = os.path.join(DATA_DIR, f"{table_name}.json")
-    try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            print(f"Файл данных '{table_name}.json' удален")
-    except Exception as e:
-        print(f"Ошибка при удалении файла данных: {e}")
-
-    # Удаляем из метаданных
-    new_metadata = drop_table(metadata, table_name)
-    return new_metadata
     

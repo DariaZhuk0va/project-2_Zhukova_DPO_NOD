@@ -1,9 +1,9 @@
-import copy
 import json
+
 from prettytable import PrettyTable
 
-from .decorators import handle_db_errors, confirm_action, log_time
-from .utils import select_cacher, load_table_data
+from .decorators import confirm_action, handle_db_errors, log_time
+from .utils import load_table_data, select_cacher
 
 
 @handle_db_errors
@@ -23,12 +23,17 @@ def create_table(metadata, table_name, columns):
         print(f"Ошибка: Таблица '{table_name}' уже существует")
         return metadata
 
-    new_metadata = copy.deepcopy(metadata)
+    new_metadata = metadata.copy()
     table_columns = {"ID": "int"}
 
     for col_name, col_type in columns.items():
         col_type = col_type.lower().strip()
-
+        
+        if col_name.upper() == "ID":
+            print(f"Ошибка: Столбец 'ID' создается автоматически и "
+                  f"не может быть указан вручную")
+            return metadata
+        
         if col_type not in ["int", "str", "bool"]:
             print(
                 f"Ошибка: Неподдерживаемый тип данных '{col_type}' "
@@ -235,6 +240,9 @@ def display_table(data, columns):
     
     print(table)
 
+
+
+@handle_db_errors
 def create_select_with_cache(table_name, where_clause):
     """
     Создает функцию для выполнения SELECT с кэшированием.
@@ -249,19 +257,19 @@ def create_select_with_cache(table_name, where_clause):
     
     cache_key = f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
     
+    #def execute_select():
+        #"""Функция для получения данных при промахе кэша"""
+        
+    if where_clause is None:
+        cache_key = f"select_all_{table_name}"
+    else:
+        cache_key=f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
+    
     def execute_select():
         """Функция для получения данных при промахе кэша"""
-        
-        if where_clause is None:
-            cache_key = f"select_all_{table_name}"
-        else:
-            cache_key = f"select_{table_name}_{json.dumps(where_clause, sort_keys=True)}"
-    
-        def execute_select():
-            """Функция для получения данных при промахе кэша"""
             
-            table_data = load_table_data(table_name)
-            return select(table_data, where_clause)
+        table_data = load_table_data(table_name)
+        return select(table_data, where_clause)
     
-        return select_cacher(cache_key, execute_select)
+    #    return select_cacher(cache_key, execute_select)
     return select_cacher(cache_key, execute_select)

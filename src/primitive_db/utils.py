@@ -1,11 +1,8 @@
 import json
 import os
 
+from .constants import DATA_DIR, METADATA_FILE
 from .decorators import handle_db_errors
-
-# Константы
-METADATA_FILE = 'db_meta.json'
-DATA_DIR = 'data'
 
 @handle_db_errors
 def ensure_data_dir():
@@ -13,12 +10,25 @@ def ensure_data_dir():
     Создает директорию data если она не существует
     """
 
-    def _ensure_data_dir():
-        if not os.path.exists(DATA_DIR):
-            os.makedirs(DATA_DIR, exist_ok=True)
-            print(f"Директория '{DATA_DIR}' создана")
-        return True
-    return _ensure_data_dir()
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR, exist_ok=True)
+        print(f"Директория '{DATA_DIR}' создана")
+    return True
+
+@handle_db_errors
+def initialize_database():
+    """
+    Инициализирует базу данных - создает необходимые файлы если их нет
+    """
+    ensure_data_dir()
+    
+    # Проверяем и создаем файл метаданных если его нет
+    if not os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, 'w', encoding='utf-8') as file:
+            json.dump({}, file, ensure_ascii=False, indent=2)
+        print(f"Файл метаданных '{METADATA_FILE}' создан")
+    
+    return True
 
 @handle_db_errors
 def load_metadata(filepath):
@@ -53,15 +63,17 @@ def load_table_data(table_name):
     filepath = os.path.join(DATA_DIR, f"{table_name}.json")
 
     try:
-        with open(filepath, 'r', encoding='utf-8') as file:
+        with open(filepath, 'r', encoding = 'utf-8') as file:
             content = file.read().strip()
             if not content:
                 return []
-            data = json.loads(content)
+            data = list(json.loads(content))
             return data
     
     except FileNotFoundError:
-        # Для новой таблицы возвращаем пустой список вместо ошибки
+        with open(filepath, 'w', encoding = 'utf-8') as file:
+            json.dump({}, file, ensure_ascii = False, indent = 2)
+        print(f"Файл метаданных '{filepath}' создан")
         return []
     
     except json.JSONDecodeError as e:
@@ -81,12 +93,14 @@ def save_table_data(table_name, data):
     with open(filepath, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
     return True
-    
+
+@handle_db_errors    
 def get_next_id(table_name):
     """
     Генерирует следующий ID для таблицы
     """
     
+    START_ID = 1
     table_data = load_table_data(table_name)
     if table_data:
         existing_ids = {record['ID'] for record in table_data}
@@ -94,8 +108,9 @@ def get_next_id(table_name):
         
         return next_id
     else:
-        return 1
-    
+        return START_ID
+
+@handle_db_errors     
 def normalize_table_schema(table_schema):
     """
     Приводит все имена столбцов в схеме таблицы к нижнему регистру
@@ -105,6 +120,7 @@ def normalize_table_schema(table_schema):
         normalized_schema[col_name.lower()] = col_type
     return normalized_schema
 
+@handle_db_errors   
 def create_cacher():
     """
     Создает замыкание для кэширования результатов.
@@ -113,7 +129,7 @@ def create_cacher():
         Функция cache_result(key, value_func) для кэширования
     """
     
-    cache = {}  # Кэш хранится в замыкании
+    cache = {} 
     
     def cache_result(key, value_func):
         """
@@ -140,16 +156,13 @@ def create_cacher():
         """
         keys_to_remove = []
         for key in cache.keys():
-            if key.startswith(f"select_{table_name}_") or key == f"select_all_{table_name}":
+            if (key.startswith(f"select_{table_name}_") or
+                key == f"select_all_{table_name}"):
                 keys_to_remove.append(key)
         
         for key in keys_to_remove:
             del cache[key]
-            #print(f"Удален кэш для ключа: {key}")
-        
-        #if keys_to_remove:
-            #print(f"Очищен кэш для таблицы '{table_name}' ({len(keys_to_remove)} записей)")
-    
+           
     def get_cache_stats():
         """
         Возвращает статистику кэша
@@ -163,3 +176,4 @@ def create_cacher():
 
 # Глобальные кэшеры
 select_cacher, invalidate_table_cache, get_cache_stats = create_cacher()
+

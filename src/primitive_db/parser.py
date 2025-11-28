@@ -1,5 +1,6 @@
 from .decorators import handle_db_errors
 
+
 @handle_db_errors
 def parse_conditions(condition_str):
     """
@@ -14,8 +15,10 @@ def parse_conditions(condition_str):
     for condition in conditions_list:
         condition = condition.strip()
         if '=' in condition:
-            parts = condition.split('=', 1)
-            if len(parts) == 2:
+            MAXSPLIT = 1
+            PARTS_COUNT = 2
+            parts = condition.split('=', MAXSPLIT)
+            if len(parts) == PARTS_COUNT:
                 key = parts[0].strip()
                 raw_value = parts[1].strip()
                 conditions[key] = raw_value
@@ -105,7 +108,6 @@ def convert_value(value, expected_type = None):
             elif value.lower() in ['false', '0', 'no', 'off']:
                 return False
             
-            # Если ничего не подошло - строка
             return value
 
 def convert_where_clause(where_clause, table_schema):
@@ -139,21 +141,18 @@ def validate_where_conditions(args, start_index):
     Проверяет условия WHERE на наличие пробелов в значениях без кавычек.
     """
     i = start_index
+
     while i < len(args):
-        # Ищем паттерн: столбец = значение
         if i + 2 < len(args) and args[i + 1] == '=':
             column = args[i]
             value_start = i + 2
             
-            # Ищем конец значения (до следующего оператора = или конца)
             j = value_start
             while j < len(args):
-                # Если нашли следующий оператор =, значит текущее значение закончилось
                 if j + 1 < len(args) and args[j + 1] == '=':
                     break
                 j += 1
             
-            # Если значение состоит из нескольких слов (без кавычек) - ошибка
             if j > value_start + 1:
                 original_value = ' '.join(args[value_start:j])
                 print("Ошибка: Обнаружены пробелы в значении условия WHERE")
@@ -161,7 +160,6 @@ def validate_where_conditions(args, start_index):
                 print(f"Используйте: {column} = \"{original_value}\"")
                 return False
             
-            # Переходим к следующему условию
             i = j
         else:
             i += 1
@@ -199,3 +197,4 @@ def validate_set_conditions(args, start_index):
             i += 1
     
     return True
+
