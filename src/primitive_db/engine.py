@@ -31,7 +31,9 @@ from .utils import (
     save_metadata,
     save_table_data,
 )
-
+from .decorators import (
+    handle_db_errors
+)
 
 def run():
     """
@@ -47,7 +49,7 @@ def run():
     while True:
 
         try:
-            metadata = load_metadata(METADATA_FILE)
+            metadata = load_metadata(METADATA_FILE) or {}
 
             user_input = prompt.string("\n>>>Введите команду: ").strip()
 
@@ -148,9 +150,10 @@ def handle_create_table(metadata, args):
 
     new_metadata = create_table(metadata, table_name, columns_dict)
 
-    if new_metadata != metadata:
+    if new_metadata is not None and new_metadata != metadata:
         save_metadata(METADATA_FILE, new_metadata)
 
+@handle_db_errors
 def handle_drop_table(metadata, args):
     """
     Обрабатывает удаление таблицы - удаляет и метаданные и данные
@@ -160,28 +163,28 @@ def handle_drop_table(metadata, args):
     if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для drop_table")
         print("Использование: drop_table <имя_таблицы>")
+        return metadata
 
     TABLE_NAME_INDEX = 1
     table_name = args[TABLE_NAME_INDEX]
     
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return 
-    
     new_metadata = drop_table(metadata, table_name)
     if new_metadata == REFUSE:
-        return 
+        return metadata 
     else:
         filepath = os.path.join(DATA_DIR, f"{table_name}.json")
         try:
             if os.path.exists(filepath):
                 os.remove(filepath)
                 print(f"Файл данных '{table_name}.json' удален")
-                save_metadata(METADATA_FILE, new_metadata)
         except Exception as e:
             print(f"Ошибка при удалении файла данных: {e}")
-        return
+            return metadata
     
+    save_metadata(METADATA_FILE, new_metadata)
+    return new_metadata
+
+@handle_db_errors    
 def handle_insert(metadata, args):
     """
     Обрабатывает команду insert в формате: insert into <table> values (val1, val2, ...)
@@ -206,10 +209,7 @@ def handle_insert(metadata, args):
     
     TABLE_NAME_INDEX = 2
     table_name = args[TABLE_NAME_INDEX].lower()
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return
-
+    
     VALUES_INDEX = 3
     if args[VALUES_INDEX].lower() != "values":
         print("Ошибка: Ожидается ключевое слово 'values'")
@@ -260,9 +260,8 @@ def handle_insert(metadata, args):
 
     if new_record:
         table_data = load_table_data(table_name)
-        if table_data is None:
-            table_data = []
-            
+        if table_data is None or table_data == {}:
+            table_data = []   
         table_data.append(new_record)
 
         if save_table_data(table_name, table_data):
@@ -271,6 +270,7 @@ def handle_insert(metadata, args):
         else:
             print("Ошибка при сохранении данных")
 
+@handle_db_errors
 def handle_select(metadata, args):
     """
     Обрабатывает команду select в формате:
@@ -289,9 +289,6 @@ def handle_select(metadata, args):
 
     TABLE_NAME_INDEX = 2
     table_name = args[TABLE_NAME_INDEX].lower()
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return
     
     table_schema = metadata[table_name]
     table_schema_norm = normalize_table_schema(table_schema)
@@ -335,7 +332,7 @@ def handle_select(metadata, args):
             print(f"Доступные столбцы: {', '.join(table_schema.keys())}")
             return
 
-    try:
+    try:    
         converted_where = convert_where_clause(where_clause, table_schema_norm)
         where_clause = converted_where
     except ValueError as e:
@@ -361,7 +358,7 @@ def handle_select(metadata, args):
  
     display_table(result_data, columns)
 
-
+@handle_db_errors
 def handle_delete(metadata, args):
     """
     Обрабатывает команду delete в формате: delete from <table> where <условия>
@@ -380,9 +377,6 @@ def handle_delete(metadata, args):
 
     TABLE_NAME_INDEX = 2
     table_name = args[TABLE_NAME_INDEX].lower()
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return
 
     WHERE_INDEX = 3
     if args[WHERE_INDEX].lower() != "where":
@@ -435,7 +429,7 @@ def handle_delete(metadata, args):
     else:
         print("Записи для удаления не найдены")
 
-
+@handle_db_errors
 def handle_update(metadata, args):
     """
     Обрабатывает команду update в формате: update <table> set <условия> where <условия>
@@ -449,9 +443,6 @@ def handle_update(metadata, args):
 
     TABLE_NAME_INDEX = 1
     table_name = args[TABLE_NAME_INDEX].lower()
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return
 
     SET_INDEX = 2
     if args[SET_INDEX].lower() != "set":
@@ -553,7 +544,7 @@ def handle_update(metadata, args):
     else:
         print("Записи для обновления не найдены")
 
-
+@handle_db_errors
 def handle_info(metadata, args):
     """
     Обрабатывает команду info - выводит информацию о таблице
@@ -566,10 +557,6 @@ def handle_info(metadata, args):
 
     TABLE_NAME_INDEX = 1
     table_name = args[TABLE_NAME_INDEX].lower()
-
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return
 
     table_data = load_table_data(table_name)
 

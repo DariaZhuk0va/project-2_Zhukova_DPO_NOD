@@ -66,10 +66,6 @@ def drop_table(metadata, table_name):
         dict: Обновленные метаданные
     """
 
-    if table_name not in metadata:
-        print(f"Ошибка: Таблица '{table_name}' не существует")
-        return metadata
-
     del metadata[table_name]
     print(f"Таблица '{table_name}' успешно удалена")
     return metadata

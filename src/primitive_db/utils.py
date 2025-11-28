@@ -36,10 +36,13 @@ def load_metadata(filepath):
     Загружает данные из JSON-файла.
     Если файл не найден, возвращает пустой словарь {}.
     """
+
     with open(filepath, "r", encoding="utf-8") as file:
         content = file.read().strip()
+        
         if not content:
             return {}
+        
         return json.loads(content)
 
 @handle_db_errors
@@ -47,6 +50,13 @@ def save_metadata(filepath, data):
     """
     Сохраняет переданные данные в JSON-файл
     """
+    if data is None:
+        print("Ошибка: Попытка сохранить None в метаданные")
+        return False
+        
+    if not isinstance(data, dict):
+        print(f"Ошибка: Ожидается dict для метаданных, получен {type(data)}")
+        return False
     
     with open(filepath, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
@@ -67,7 +77,7 @@ def load_table_data(table_name):
             content = file.read().strip()
             if not content:
                 return []
-            data = list(json.loads(content))
+            data = json.loads(content)
             return data
     
     except FileNotFoundError:
@@ -88,6 +98,14 @@ def save_table_data(table_name, data):
     
     ensure_data_dir()
     
+    if data is None:
+        print(f"Ошибка: Попытка сохранить None для таблицы {table_name}")
+        return False
+        
+    if not isinstance(data, list):
+        print(f"Ошибка: Ожидается list для данных таблицы, получен {type(data)}")
+        return False
+
     filepath = os.path.join(DATA_DIR, f"{table_name}.json")
     
     with open(filepath, 'w', encoding='utf-8') as file:

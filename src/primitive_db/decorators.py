@@ -35,7 +35,7 @@ def handle_db_errors(func):
                 )
             return None
         except KeyError as e:
-            print(f"Ошибка: Таблица или столбец не найден - {e}")
+            print(f"Ошибка: Таблица не найдена - {e}")
             return None
         except ValueError as e:
             print(f"Ошибка валидации данных: {e}")
@@ -59,8 +59,8 @@ def confirm_action(action_name):
     def decorator(func):
         def wrapper(*args, **kwargs):
             response = prompt.string(
-                                    'Вы уверены, что хотите выполнить '
-                                    '"{action_name}"? [y/n]: '
+                                    f'Вы уверены, что хотите выполнить '
+                                    f'"{action_name}"? [y/n]: '
                                     ).strip().lower()
             
             match response:
