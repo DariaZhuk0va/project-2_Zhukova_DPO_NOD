@@ -266,3 +266,6 @@ https://asciinema.org/a/FXFfnZ9P5uTGQ1en1RDeMIpzu
 Работа декораторов и кэша:
 https://asciinema.org/a/VOsY2hJ5WzVG25p8B9JOZafeu
 
+Работа всех функций программы:
+https://asciinema.org/a/gKZk23Jmwycpda48FMtAIDxDP
+
