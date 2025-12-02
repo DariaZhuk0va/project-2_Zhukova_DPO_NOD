@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "project-2-zhukova-dpo-nod"
 version = "0.1.0"
-description = "Project 2 for DPO NOD course"
+description = "Простой модуль для управления структурой базы данных с поддержкой создания и удаления таблиц"
 authors = ["Daria Zhukova <isaevadv@gmail.com>"]
 readme = "README.md"
 packages = [
@@ -28,6 +28,7 @@ ignore = []
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
 [dependency-groups]
 dev = [
     "ruff (>=0.14.3,<0.15.0)"
