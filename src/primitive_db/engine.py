@@ -18,7 +18,7 @@ from .decorators import handle_db_errors
 from .parser import (
     convert_where_clause,
     parse_conditions,
-    split_by_commas,
+    parse_values,
     validate_set_conditions,
     validate_where_conditions,
 )
@@ -216,11 +216,11 @@ def handle_insert(metadata, args):
 
     table_schema = metadata[table_name]
     expected_columns = [col for col in table_schema.keys() if col != "ID"]
-
-    values_str = " ".join(args[(VALUES_INDEX + 1):])
-
-    has_opening_bracket = values_str.startswith('(')
-    has_closing_bracket = values_str.endswith(')')
+    
+    values_list = args[(VALUES_INDEX + 1):]
+   
+    has_opening_bracket = values_list[0].startswith('(')
+    has_closing_bracket = values_list[-1].endswith(')')
     
     if not has_opening_bracket and not has_closing_bracket:
         print("Ошибка: Отсутствуют скобки вокруг значений")
@@ -235,11 +235,9 @@ def handle_insert(metadata, args):
         print("Использование: values (<значение1>, <значение2>, ...)")
         return
 
-    values_str = values_str[1:-1]
-
     try:
-        values = split_by_commas(values_str)
-        values = [v.strip() for v in values]
+        values = parse_values(values_list)
+    
 
     except Exception as e:
         print(f"Ошибка при разборе значений: {e}")
@@ -275,6 +273,7 @@ def handle_select(metadata, args):
     Обрабатывает команду select в формате:
     select from <table> where <столбец> = <значение>
     """
+
     MIN_ARGS = 3
     if len(args) < MIN_ARGS:
         print("Ошибка: Недостаточно аргументов для select")
@@ -317,10 +316,14 @@ def handle_select(metadata, args):
         print("Использование: select from <таблица> where <столбец> = <значение>")
         return
 
-    where_str = " ".join(args[WHERE_INDEX + 1:])
-    where_clause = parse_conditions(where_str)
+    where_list = args[WHERE_INDEX + 1:]
+    where_clause = parse_conditions(where_list)
 
-    if where_clause is None:
+    if len(where_list) == 0 or len(where_clause) == 0:
+        print("Ошибка: Отсутствуют или некорректно введены условия после WHERE")
+        print("Использование: select from <имя_таблицы> "
+            "where <столбец_условия> = <значение_условия>, "
+            "<столбец_условия> = <значение_условия>, ...")
         return
 
     for col_name in where_clause.keys():
@@ -385,9 +388,14 @@ def handle_delete(metadata, args):
     if not validate_where_conditions(args, WHERE_INDEX + 1): 
         return 
     
-    where_str = " ".join(args[WHERE_INDEX + 1:])
-    where_clause = parse_conditions(where_str)
-    if where_clause is None:
+    where_list = args[WHERE_INDEX + 1:]
+    where_clause = parse_conditions(where_list)
+    
+    if len(where_list) == 0 or len(where_clause) == 0:
+        print("Ошибка: Отсутствуют или некорректно введены условия после WHERE")
+        print("Использование: delete from <имя_таблицы> "
+            "where <столбец_условия> = <значение_условия>, "
+            "<столбец_условия> = <значение_условия>, ...")
         return
 
     table_schema = metadata[table_name]
@@ -464,30 +472,27 @@ def handle_update(metadata, args):
     if not validate_where_conditions(args, where_index + 1):
         return
 
-    set_str = " ".join(args[SET_INDEX + 1:where_index])
-    where_str = " ".join(args[where_index + 1 :])
+    set_list = args[SET_INDEX + 1:where_index]
+    where_list = args[where_index + 1 :]
 
-    set_clause = parse_conditions(set_str)
-    where_clause = parse_conditions(where_str)
+    set_clause = parse_conditions(set_list)
+    where_clause = parse_conditions(where_list)
 
+    if len(set_list) == 0 or len(set_clause) == 0:
+        print("Ошибка: Отсутствуют или некорректно введены условия " \
+        "для обновления после SET")
+        print(
+            "Использование: update <таблица> set <столбец>=<значение>, " \
+            "<столбец>=<значение>, ... where <столбец_условия> = <значение_условия>, "
+            "<столбец_условия> = <значение_условия>, ...")
+        return
 
-    if set_str.strip() == "" or set_clause is None or len(set_clause) == 0:
-        print("Ошибка: Отсутствуют условия для обновления после SET")
+    if len(where_list) == 0 or len(where_clause) == 0:
+        print("Ошибка: Отсутствуют или некорректно введены условия после WHERE")
         print(
             "Использование: update <таблица> set <столбец>=<значение> "
             "where <столбец_условия> = <значение_условия>"
             )
-        return
-
-    if where_str.strip() == "":
-        print("Ошибка: Отсутствуют условия после WHERE")
-        print(
-            "Использование: update <таблица> set "
-            "<столбец>=<значение> where <условия>"
-            )
-        return
-
-    if set_clause is None or where_clause is None:
         return
 
     table_data = load_table_data(table_name)

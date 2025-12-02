@@ -2,64 +2,64 @@ from .decorators import handle_db_errors
 
 
 @handle_db_errors
-def parse_conditions(condition_str):
+def parse_values(values_list):
     """
-    Парсит условия в формате 'key1 = value1, key2 = value2'
+    Парсит значения в формате VALUES (value1, value2, value3)
+    Возвращает список значений
     """
-    if not condition_str:
-        return None
+   
+    if not values_list:
+        return []
     
-    conditions = {}
-    conditions_list = split_by_commas(condition_str)
+    result_values_list =[]
+    for value in values_list:
         
-    for condition in conditions_list:
-        condition = condition.strip()
-        if '=' in condition:
-            MAXSPLIT = 1
-            PARTS_COUNT = 2
-            parts = condition.split('=', MAXSPLIT)
-            if len(parts) == PARTS_COUNT:
-                key = parts[0].strip()
-                raw_value = parts[1].strip()
-                conditions[key] = raw_value
+        value = value.strip()
+        if value.startswith('('):
+            value = value[1:].strip()
+        if value.endswith(')'):
+            value = value[:-1].strip()
+        if value.endswith(','):
+            value = value[:-1].strip()
+        result_values_list.append(value)
+
+    return result_values_list
+
+@handle_db_errors
+def parse_conditions(set_list):
+    """
+    Парсит условия SET в формате [col1, =, value1, col2, =, value2]
+    Возвращает словарь {col: value}
+    """
+    if not set_list:
+        return {}
+
+    conditions = {}
+    for i, item in enumerate(set_list):
+        set_part = i % 3
+        EQUAL_INDEX = 1
+        if set_part == EQUAL_INDEX and item != '=':
+            print(f"Ошибка: Отсутствует знак '=' в условии после {set_list[i - 1]}")
+            return {}
+        
+        if set_part == 0:
+            if len(set_list) - i < 3:
+                return {} 
+            col = item.strip()
+            value = set_list[i + 2].strip()
+            if (i + 2 != len(set_list) - 1):
+                if value.endswith(','):
+                    value = value[:-1].strip()
+                else:
+                    print('Ошибка: Между условиями отсутсвует запятая')
+                    return {} 
             else:
-                print(f"Ошибка: Некорректное условие '{condition}'")
-                return None
-        else:
-            print(f"Ошибка: Отсутствует знак '=' в условии '{condition}'")
-            return None
-       
+                if value.endswith(','):
+                    print('Ошибка: После условий лишняя запятая')
+                    return {} 
+            conditions[col] = value
+
     return conditions
-    
-def split_by_commas(text):
-    """
-    Делит строку по запятым, игнорируя запятые внутри кавычек
-    """
-    
-    parts = []
-    current_part = []
-    in_quotes = False
-    quote_char = None
-  
-    for char in text:
-        if char in ['"', "'"]:
-            if not in_quotes:
-                in_quotes = True
-                quote_char = char
-            elif char == quote_char:
-                in_quotes = False
-                quote_char = None
-            current_part.append(char)
-        elif char == ',' and not in_quotes:
-            parts.append(''.join(current_part).strip())
-            current_part = []
-        else:
-            current_part.append(char)
-    
-    if current_part:
-        parts.append(''.join(current_part).strip())
-    
-    return parts
 
 def convert_value(value, expected_type = None):
     """
